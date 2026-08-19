@@ -1,0 +1,51 @@
+MEETING GIF MAKER — how to use it
+==================================
+
+Turn a call recording into a looping GIF of its best moments.
+Everything runs on your own computer — recordings are never uploaded anywhere.
+
+
+GETTING STARTED (one-time, ~2 minutes)
+--------------------------------------
+1. Move this folder anywhere you like (e.g. your home folder).
+
+2. Double-click "Start GIF Maker.command".
+
+   ⚠️ THE FIRST TIME ONLY, Mac will likely block it:
+   → RIGHT-CLICK the file → choose "Open" → click "Open" again.
+   After this once, normal double-click works.
+
+3. Wait a minute or two — it sets itself up automatically
+   (needs internet this first time).
+
+4. Your browser opens the tool by itself. Done.
+
+Keep the black Terminal window open while you use the tool.
+Close it when you're finished.
+
+
+MAKING A GIF
+------------
+1. Drag your recording into the box (MP4, MOV, WEBM, MKV — big files OK.
+   Drop several videos at once to combine them into one GIF).
+
+2. Pick your settings:
+   • Number of stills — how many moments end up in the GIF
+   • Pace — Slow / Medium / Fast
+   • Style — Slideshow (held stills) or Motion (mini live clips)
+
+3. Click "Make GIF" and wait — it scans the whole recording and
+   auto-picks the sharpest, most varied moments.
+
+4. Want different frames? Click "▸ Edit chosen frames", click frames
+   to add/remove them, then "Rebuild GIF".
+
+5. Click "Download GIF". That's it.
+
+
+IF SOMETHING'S WEIRD
+--------------------
+• Nothing opens? Make sure you kept the Terminal window open,
+  then go to http://127.0.0.1:5001 in your browser.
+• Still stuck? Close the Terminal window and double-click
+  "Start GIF Maker.command" again.

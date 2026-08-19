@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Meeting GIF Maker</title>
+<style>
+  :root {
+    --bg:#f0ede6; --ink:#0d0d0b; --mid:#6b6860; --faint:#ccc9c0;
+    --pink:#f2896a; --yellow:#f5e642; --mint:#b8e0c8; --lav:#c8c0e8;
+    --card:#fff; --line:#e4e0d6;
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Inter",system-ui,sans-serif;
+    line-height:1.5;
+  }
+  header { padding:28px 32px 22px; border-bottom:1px solid var(--line); }
+  h1 { font-size:26px; margin:0; letter-spacing:-.01em; }
+  .sub { color:var(--mid); font-size:14px; margin-top:4px; }
+  .wrap { max-width:1080px; margin:0 auto; padding:28px 32px 90px; }
+
+  .drop {
+    border:2px dashed var(--faint); border-radius:16px; background:var(--card);
+    padding:44px 24px; text-align:center; cursor:pointer; transition:.15s;
+  }
+  .drop.hover { border-color:var(--pink); background:#fff8f5; }
+  .drop strong { font-size:17px; }
+  .drop .hint { color:var(--mid); font-size:13px; margin-top:6px; }
+  .drop .fname { margin-top:12px; font-size:14px; color:var(--ink); font-weight:600; }
+
+  .controls {
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    gap:16px; margin-top:22px; background:var(--card);
+    border:1px solid var(--line); border-radius:14px; padding:20px;
+  }
+  .ctl label { display:block; font-size:12px; text-transform:uppercase;
+    letter-spacing:.06em; color:var(--mid); margin-bottom:6px; font-weight:600; }
+  .ctl input[type=range] { width:100%; }
+  .ctl .val { font-variant-numeric:tabular-nums; font-weight:600; }
+  .seg { display:flex; gap:6px; }
+  .seg button {
+    flex:1; padding:9px 6px; border:1px solid var(--faint); background:#fff;
+    border-radius:8px; cursor:pointer; font-size:13px; font-family:inherit;
+  }
+  .seg button.on { background:var(--ink); color:#fff; border-color:var(--ink); }
+
+  .row { display:flex; gap:12px; align-items:center; margin-top:22px; flex-wrap:wrap; }
+  button.go {
+    background:var(--ink); color:#fff; border:0; border-radius:10px;
+    padding:13px 26px; font-size:15px; font-weight:600; cursor:pointer;
+    font-family:inherit;
+  }
+  button.go:disabled { opacity:.4; cursor:default; }
+  button.ghost {
+    background:#fff; color:var(--ink); border:1px solid var(--faint);
+    border-radius:10px; padding:13px 20px; font-size:14px; cursor:pointer;
+    font-family:inherit;
+  }
+
+  .progress { margin-top:22px; display:none; }
+  .bar { height:8px; background:var(--faint); border-radius:99px; overflow:hidden; }
+  .bar > i { display:block; height:100%; width:0; background:var(--pink); transition:.3s; }
+  .pmsg { font-size:13px; color:var(--mid); margin-top:8px; }
+
+  /* result / preview */
+  .result { margin-top:34px; display:none; }
+  .result h2 { font-size:15px; text-transform:uppercase; letter-spacing:.06em;
+    color:var(--mid); margin:0 0 12px; text-align:center; }
+  .stage {
+    background:repeating-conic-gradient(#e9e5dc 0% 25%, #f4f1ea 0% 50%) 50%/22px 22px;
+    border:1px solid var(--line); border-radius:14px; padding:18px;
+    display:flex; justify-content:center;
+  }
+  .stage img { max-width:100%; border-radius:8px; display:block;
+    box-shadow:0 6px 24px rgba(0,0,0,.14); }
+  .stats { color:var(--mid); font-size:13px; margin:12px 0 0; text-align:center;
+    font-variant-numeric:tabular-nums; }
+  .stats b { color:var(--ink); }
+  .warn { color:#b1402a; }
+  .actions { justify-content:center; }
+
+  /* collapsible edit panel */
+  .editwrap { margin-top:26px; border-top:1px solid var(--line); padding-top:18px; }
+  .disclosure {
+    width:100%; text-align:left; background:none; border:0; cursor:pointer;
+    font-family:inherit; font-size:14px; font-weight:600; color:var(--ink);
+    display:flex; align-items:center; gap:8px; padding:6px 0;
+  }
+  .disclosure .chev { transition:.2s; color:var(--mid); }
+  .disclosure.open .chev { transform:rotate(90deg); }
+  .disclosure .count { color:var(--mid); font-weight:400; }
+  .panel { display:none; margin-top:14px; }
+  .panel.open { display:block; }
+  .panel .note { font-size:13px; color:var(--mid); margin:0 0 14px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:12px; }
+  .cand { position:relative; border-radius:10px; overflow:hidden; cursor:pointer;
+    border:3px solid transparent; background:#000; aspect-ratio:16/9; }
+  .cand img { width:100%; height:100%; object-fit:cover; display:block;
+    opacity:.42; transition:.15s; }
+  .cand.sel { border-color:var(--pink); }
+  .cand.sel img { opacity:1; }
+  .cand .tick { position:absolute; top:6px; right:6px; width:22px; height:22px;
+    border-radius:99px; background:rgba(255,255,255,.85); display:flex;
+    align-items:center; justify-content:center; font-size:13px; color:#bbb; }
+  .cand.sel .tick { background:var(--pink); color:#fff; }
+  .cand .meta { position:absolute; bottom:0; left:0; right:0; padding:4px 7px;
+    font-size:11px; color:#fff; background:linear-gradient(transparent,rgba(0,0,0,.7));
+    display:flex; gap:5px; flex-wrap:wrap; font-variant-numeric:tabular-nums; }
+  .cand .tag { background:rgba(255,255,255,.22); padding:0 5px; border-radius:4px; }
+
+  .err { color:#b1402a; font-size:14px; margin-top:14px; display:none; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Meeting GIF Maker</h1>
+  <div class="sub">Drop a call recording → it picks the nicest, most varied stills → makes a GIF.</div>
+</header>
+
+<div class="wrap">
+  <div class="drop" id="drop">
+    <strong>Drop video(s) here</strong>, or click to choose
+    <div class="hint">MP4 · MOV · WEBM · MKV — drop several to pool them into one GIF · nothing leaves your machine</div>
+    <div class="fname" id="fname"></div>
+    <input type="file" id="file" accept="video/*" multiple hidden />
+  </div>
+
+  <div class="controls">
+    <div class="ctl">
+      <label>Number of stills · <span class="val" id="countV">12</span></label>
+      <input type="range" id="count" min="3" max="40" value="12" />
+    </div>
+    <div class="ctl">
+      <label>Pace</label>
+      <div class="seg" id="pace">
+        <button data-pace="slow">Slow</button>
+        <button data-pace="med" class="on">Medium</button>
+        <button data-pace="fast">Fast</button>
+      </div>
+    </div>
+    <div class="ctl">
+      <label>Style</label>
+      <div class="seg" id="mode">
+        <button data-mode="slideshow" class="on">Slideshow</button>
+        <button data-mode="motion">Motion</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <button class="go" id="makeBtn" disabled>Make GIF</button>
+    <span class="sub" id="srcInfo"></span>
+  </div>
+
+  <div class="err" id="err"></div>
+
+  <div class="progress" id="progress">
+    <div class="bar"><i id="barFill"></i></div>
+    <div class="pmsg" id="pmsg">Starting…</div>
+  </div>
+
+  <!-- RESULT / PREVIEW -->
+  <div class="result" id="result">
+    <h2>Your GIF</h2>
+    <div class="stage"><img id="gifImg" alt="GIF preview" /></div>
+    <div class="stats" id="stats"></div>
+    <div class="row actions">
+      <a id="dl" download><button class="go">Download GIF</button></a>
+      <button class="ghost" id="rebuildBtn">↻ Rebuild with current settings</button>
+    </div>
+
+    <!-- collapsible: edit chosen frames -->
+    <div class="editwrap">
+      <button class="disclosure" id="editToggle">
+        <span class="chev">▸</span> Edit chosen frames
+        <span class="count" id="editCount"></span>
+      </button>
+      <div class="panel" id="panel">
+        <p class="note">Auto-picked for variety. Click any frame to add / remove it,
+          then <b>Rebuild</b>. Frames always play in time order.</p>
+        <div class="grid" id="grid"></div>
+        <div class="row">
+          <button class="go" id="rebuildBtn2">↻ Rebuild GIF</button>
+          <button class="ghost" id="autoPickBtn">Reset to auto-pick</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+// Always talk to the server explicitly, so the page works even when opened as a
+// file:// (e.g. an IDE preview panel) rather than served from the server.
+const API = (location.origin && location.origin.startsWith("http"))
+  ? location.origin : "http://127.0.0.1:5001";
+let chosenFiles = [], jobId = null, candidates = [], autoIdxs = [],
+    mode = "slideshow", pace = "med", multiVideo = false;
+const GIF_WIDTH = 640;  // sensible default — good for sharing on web/Slack
+const PACE = {
+  slideshow: { slow: 0.8, med: 0.5, fast: 0.3 },  // seconds each still is held
+  motion:    { slow: 6,   med: 8,   fast: 12 },     // frames per second
+};
+
+// ---- file pick / drag-drop ----
+const drop = $("#drop"), fileInput = $("#file");
+drop.onclick = () => fileInput.click();
+fileInput.onchange = e => setFiles(e.target.files);
+["dragenter","dragover"].forEach(ev => drop.addEventListener(ev, e => {
+  e.preventDefault(); drop.classList.add("hover"); }));
+["dragleave","drop"].forEach(ev => drop.addEventListener(ev, e => {
+  e.preventDefault(); drop.classList.remove("hover"); }));
+drop.addEventListener("drop", e => { if (e.dataTransfer.files.length) setFiles(e.dataTransfer.files); });
+
+function setFiles(list) {
+  const vids = [...list].filter(f => /video\//.test(f.type) || /\.(mp4|mov|webm|mkv|m4v|avi)$/i.test(f.name));
+  if (!vids.length) return;
+  chosenFiles = vids;
+  const totMB = vids.reduce((a,f)=>a+f.size,0)/1048576;
+  $("#fname").textContent = vids.length === 1
+    ? `${vids[0].name}  ·  ${totMB.toFixed(0)} MB`
+    : `${vids.length} videos  ·  ${totMB.toFixed(0)} MB total`;
+  $("#makeBtn").disabled = false;
+}
+
+// ---- controls ----
+$("#count").oninput = () => $("#countV").textContent = $("#count").value;
+$("#pace").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  pace = b.dataset.pace;
+  [...$("#pace").children].forEach(x => x.classList.toggle("on", x===b));
+});
+$("#mode").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  mode = b.dataset.mode;
+  [...$("#mode").children].forEach(x => x.classList.toggle("on", x===b));
+});
+
+function showErr(m){ const e=$("#err"); e.textContent=m; e.style.display=m?"block":"none"; }
+function setBar(pct,msg){ $("#barFill").style.width=pct+"%"; if(msg)$("#pmsg").textContent=msg; }
+function fmtTime(s){ s=Math.round(s); const m=Math.floor(s/60); return `${m}m ${s%60}s`; }
+function shortName(n){ n=n.replace(/\.[^.]+$/,""); return n.length>10 ? n.slice(0,9)+"…" : n; }
+
+// ---- run: analyze, then auto-build ----
+$("#makeBtn").onclick = run;
+async function run() {
+  if (!chosenFiles.length) return;
+  showErr(""); $("#result").style.display="none";
+  $("#progress").style.display="block"; setBar(2,"Uploading…");
+  $("#makeBtn").disabled = true;
+  const fd = new FormData();
+  chosenFiles.forEach(f => fd.append("video", f));
+  fd.append("count", $("#count").value);
+  let res;
+  try {
+    res = await new Promise((resolve, reject) => {
+      const x = new XMLHttpRequest();
+      x.open("POST", API+"/api/analyze");
+      x.upload.onprogress = e => {
+        if (e.lengthComputable)
+          setBar(Math.round(100*e.loaded/e.total) * 0.15,
+                 `Uploading… ${Math.round(100*e.loaded/e.total)}%`);
+      };
+      x.onload = () => { try { resolve(JSON.parse(x.responseText)); } catch(err){ reject(err); } };
+      x.onerror = () => reject(new Error("network error"));
+      x.send(fd);
+    });
+  }
+  catch(e){ showErr("Upload failed: "+e.message); $("#makeBtn").disabled=false; return; }
+  if (res.error){ showErr(res.error); $("#makeBtn").disabled=false; return; }
+  jobId = res.job_id; poll();
+}
+
+async function poll() {
+  const p = await fetch(API+"/api/progress/"+jobId).then(r=>r.json());
+  setBar(p.pct, p.message);
+  if (p.state === "error"){ showErr(p.message); $("#progress").style.display="none"; $("#makeBtn").disabled=false; return; }
+  if (p.state === "done"){
+    $("#makeBtn").disabled=false;
+    candidates = p.result.candidates;
+    autoIdxs = candidates.filter(c=>c.selected).map(c=>c.idx);
+    multiVideo = (p.result.n_videos || 1) > 1;
+    const vtxt = multiVideo ? `${p.result.n_videos} videos · ` : "";
+    $("#srcInfo").textContent = `${vtxt}${fmtTime(p.result.duration)} · ${p.result.total_samples} frames scanned`;
+    renderCandidates();
+    setBar(100,"Building GIF…");
+    await buildGif();          // auto-build right away
+    $("#progress").style.display="none";
+    return;
+  }
+  setTimeout(poll, 500);
+}
+
+// ---- candidate grid (inside the collapsible edit panel) ----
+function renderCandidates() {
+  const grid = $("#grid"); grid.innerHTML="";
+  candidates.forEach(c => {
+    const d = document.createElement("div");
+    d.className = "cand" + (c.selected ? " sel" : "");
+    const tags = [];
+    if (c.faces>0) tags.push(`<span class="tag">${c.faces}😀</span>`);
+    if (c.scene > 0.35) tags.push(`<span class="tag">scene</span>`);
+    if (multiVideo && c.src) tags.push(`<span class="tag" title="${c.src}">${shortName(c.src)}</span>`);
+    const stamp = multiVideo ? fmtTime(c.file_t) : fmtTime(c.t);
+    d.innerHTML = `<img src="${c.thumb}" loading="lazy"><div class="tick">✓</div>
+      <div class="meta"><span>${stamp}</span>${tags.join("")}</div>`;
+    d.onclick = () => { c.selected = !c.selected; d.classList.toggle("sel", c.selected); updateEditCount(); };
+    grid.appendChild(d);
+  });
+  updateEditCount();
+}
+function updateEditCount(){
+  const n = candidates.filter(c=>c.selected).length;
+  $("#editCount").textContent = `(${n} of ${candidates.length} selected)`;
+}
+
+// edit panel toggle (closed by default)
+$("#editToggle").onclick = () => {
+  $("#panel").classList.toggle("open");
+  $("#editToggle").classList.toggle("open");
+};
+$("#autoPickBtn").onclick = () => {
+  candidates.forEach(c => c.selected = autoIdxs.includes(c.idx));
+  renderCandidates();
+};
+
+// ---- build ----
+$("#rebuildBtn").onclick = $("#rebuildBtn2").onclick = buildGif;
+async function buildGif() {
+  const selected = candidates.filter(c=>c.selected).map(c=>c.idx);
+  if (!selected.length){ showErr("Pick at least one frame."); return; }
+  showErr("");
+  [...document.querySelectorAll("#rebuildBtn,#rebuildBtn2")].forEach(b=>{b.disabled=true;});
+  const body = { job_id:jobId, selected, mode, width:GIF_WIDTH,
+    hold:PACE.slideshow[pace], fps:PACE.motion[pace], clip_secs:1.0 };
+  let res;
+  try { res = await fetch(API+"/api/build",{method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify(body)}).then(r=>r.json()); }
+  catch(e){ showErr("Build failed: "+e.message); }
+  [...document.querySelectorAll("#rebuildBtn,#rebuildBtn2")].forEach(b=>{b.disabled=false;});
+  if (!res || res.error){ showErr((res&&res.error)||"Build failed"); return; }
+  $("#gifImg").src = API + res.url + "?t=" + Date.now();   // cache-bust → reloads + replays
+  $("#dl").href = API + res.url;
+  $("#dl").setAttribute("download", "meeting.gif");
+  const mb = (res.bytes/1048576).toFixed(2);
+  $("#stats").innerHTML = res.frames < 2
+    ? `<span class="warn">Only 1 still — add more frames for an animation.</span>`
+    : `<b>${res.frames} frames</b> · plays on a loop · ${mb} MB`;
+  $("#result").style.display="block";
+  $("#result").scrollIntoView({behavior:"smooth", block:"nearest"});
+}
+</script>
+</body>
+</html>
